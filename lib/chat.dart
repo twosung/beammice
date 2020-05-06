@@ -61,7 +61,7 @@ class ChatScreen extends StatefulWidget {
   ChatScreen({Key key, @required this.peerId, @required this.peerName, @required this.peerAvatar}) : super(key: key);
 
   @override
-  State createState() => new ChatScreenState(peerId: peerId, peerAvatar: peerAvatar);
+  State createState() => new ChatScreenState(peerId: peerId, peerName: peerName, peerAvatar: peerAvatar);
 }
 
 class ChatScreenState extends State<ChatScreen> {
@@ -72,8 +72,6 @@ class ChatScreenState extends State<ChatScreen> {
   String peerName;
   String peerAvatar;
   String id;
-
-  var listMessage;
 
   int log_cnt;
   String groupChatId;
@@ -123,7 +121,7 @@ class ChatScreenState extends State<ChatScreen> {
     log_cnt = _dialogues.length;
     debugPrint("Read Rows : $log_cnt");
     setState(() {
-      dialogues = _dialogues; //Escape the new line
+      dialogues = _dialogues.reversed.toList(); //Escape the new line
     });
   }
 
@@ -220,6 +218,45 @@ class ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Widget buildItem(int index, String document) {
+    return Container(
+      child: Column(
+        children: <Widget>[
+          Row(children: <Widget>[
+              Material(
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundImage: AssetImage(peerAvatar),
+                ),
+                clipBehavior: Clip.hardEdge,
+              ),
+              Container(
+                child: Text(
+                  document,
+                  style: TextStyle(color: Colors.white),
+                ),
+                padding: EdgeInsets.fromLTRB(15.0, 10.0, 15.0, 10.0),
+                width: 200.0,
+                decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(8.0)),
+                margin: EdgeInsets.only(left: 10.0),
+              )
+            ],
+          ),
+          Container(
+            child: Text(
+              '2020-03-01',
+              style: TextStyle(color: greyColor, fontSize: 12.0, fontStyle: FontStyle.italic),
+            ),
+            margin: EdgeInsets.only(left: 50.0, top: 5.0, bottom: 5.0),
+          )
+        ],
+        crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      margin: EdgeInsets.only(bottom: 10.0),
+    );
+  }
+
+  /*
   Widget buildItem(int index, DocumentSnapshot document) {
     if (document['idFrom'] == id) {
       // Right (my message)
@@ -417,20 +454,30 @@ class ChatScreenState extends State<ChatScreen> {
     }
   }
 
+   */
+
   bool isLastMessageLeft(int index) {
+    return true;
+    /*
     if ((index > 0 && listMessage != null && listMessage[index - 1]['idFrom'] == id) || index == 0) {
       return true;
     } else {
       return false;
     }
+
+     */
   }
 
   bool isLastMessageRight(int index) {
+    return false;
+    /*
     if ((index > 0 && listMessage != null && listMessage[index - 1]['idFrom'] != id) || index == 0) {
       return true;
     } else {
       return false;
     }
+
+     */
   }
 
   Future<bool> onBackPress() {
@@ -661,33 +708,28 @@ class ChatScreenState extends State<ChatScreen> {
 
   Widget buildListMessage() {
     return Flexible(
-      child: groupChatId == ''
-          ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(themeColor)))
-          : StreamBuilder(
-              stream: Firestore.instance
-                  .collection('messages')
-                  .document(groupChatId)
-                  .collection(groupChatId)
-                  .orderBy('timestamp', descending: true)
-                  .limit(20)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(
-                      child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(themeColor)));
-                } else {
-                  listMessage = snapshot.data.documents;
-                  return ListView.builder(
-                    padding: EdgeInsets.all(10.0),
-                    itemBuilder: (context, index) => buildItem(index, snapshot.data.documents[index]),
-                    itemCount: snapshot.data.documents.length,
-                    reverse: true,
-                    controller: listScrollController,
-                  );
-                }
-              },
-            ),
+      child: (dialogues != null)?
+          ListView.builder(
+            padding: EdgeInsets.all(10.0),
+            itemBuilder: (context, index) => buildItem(index, dialogues[index]),
+            itemCount: dialogues.length,
+            reverse: true,
+            controller: listScrollController,
+          )
+          : Center(
+          child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(themeColor)
+          )
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    if (updateTimer != null) {
+      updateTimer.cancel();
+    }
+    super.dispose();
   }
 }
 
